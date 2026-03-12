@@ -487,42 +487,78 @@ class DiskCleanerGUI:
                                 font=('微软雅黑', 18, 'bold'))
         title_label.pack(side=tk.LEFT)
         
-        # 磁盘信息
-        disk_frame = ttk.LabelFrame(self.root, text="💾 磁盘信息", padding=10)
-        disk_frame.pack(fill=tk.X, padx=10, pady=5)
+        # 磁盘信息（精简版）
+        disk_frame = ttk.Frame(self.root)
+        disk_frame.pack(fill=tk.X, padx=10, pady=(0, 5))
         
-        try:
-            disk = psutil.disk_usage('C:\\')
-            self.disk_label = ttk.Label(disk_frame, 
-                text=f"C盘: {self.cleaner.format_size(disk.used)} / {self.cleaner.format_size(disk.total)} ({disk.percent}%)",
-                font=('微软雅黑', 12))
-            self.disk_label.pack()
-        except:
-            pass
+        # 盘符选择
+        self.drive_var = tk.StringVar(value="C")
+        self.drive_frame = ttk.Frame(disk_frame)
+        self.drive_frame.pack(fill=tk.X)
         
-        # 按钮区域
-        btn_frame = ttk.Frame(self.root)
+        self.drives = {}  # 存储盘符信息
+        
+        # 添加盘符选择按钮
+        self.drive_buttons = {}
+        for drive in ['C', 'D', 'E', 'F']:
+            try:
+                path = drive + ":\\"
+                disk = psutil.disk_usage(path)
+                btn = ttk.Radiobutton(
+                    self.drive_frame, 
+                    text=f"{drive}: {disk.percent}%", 
+                    value=drive,
+                    variable=self.drive_var,
+                    command=self.on_drive_changed
+                )
+                btn.pack(side=tk.LEFT, padx=5)
+                self.drive_buttons[drive] = {
+                    'btn': btn,
+                    'percent': disk.percent,
+                    'free': disk.free
+                }
+            except:
+                pass
+        
+        # 警告提示
+        warning_frame = ttk.Frame(self.root)
+        warning_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        warning_label = tk.Label(
+            warning_frame,
+            text="⚠️ 清理数据需谨慎，建议定期做好备份，避免数据丢失！",
+            bg="#FFF3CD",
+            fg="#856404",
+            font=('微软雅黑', 10),
+            pady=8
+        )
+        warning_label.pack(fill=tk.X)
         btn_frame.pack(fill=tk.X, padx=10, pady=10)
         
-        self.scan_junk_btn = ttk.Button(btn_frame, text="🔍 扫描垃圾文件", 
+        # 主清理按钮
+        self.clean_btn = ttk.Button(
+            btn_frame, 
+            text="🚀 一键清理选中文件", 
+            command=self.clean_all, 
+            state=tk.DISABLED
+        )
+        self.clean_btn.pack(fill=tk.X, pady=(0, 10))
+        
+        # 扫描按钮行
+        scan_frame = ttk.Frame(btn_frame)
+        scan_frame.pack(fill=tk.X)
+        
+        self.scan_junk_btn = ttk.Button(scan_frame, text="🗑️ 垃圾清理", 
                                         command=self.scan_junk)
-        self.scan_junk_btn.pack(side=tk.LEFT, padx=5)
+        self.scan_junk_btn.pack(side=tk.LEFT, padx=5, expand=True)
         
-        self.scan_large_btn = ttk.Button(btn_frame, text="📁 扫描大文件", 
+        self.scan_large_btn = ttk.Button(scan_frame, text="📁 大文件清理", 
                                          command=self.scan_large)
-        self.scan_large_btn.pack(side=tk.LEFT, padx=5)
+        self.scan_large_btn.pack(side=tk.LEFT, padx=5, expand=True)
         
-        self.scan_im_btn = ttk.Button(btn_frame, text="💬 扫描IM数据", 
+        self.scan_im_btn = ttk.Button(scan_frame, text="💬 微信/企微清理", 
                                       command=self.scan_im)
-        self.scan_im_btn.pack(side=tk.LEFT, padx=5)
-        
-        self.clean_btn = ttk.Button(btn_frame, text="🗑️ 一键清理", 
-                                    command=self.clean_all, state=tk.DISABLED)
-        self.clean_btn.pack(side=tk.LEFT, padx=5)
-        
-        self.refresh_btn = ttk.Button(btn_frame, text="🔄 刷新", 
-                                      command=self.refresh)
-        self.refresh_btn.pack(side=tk.LEFT, padx=5)
+        self.scan_im_btn.pack(side=tk.LEFT, padx=5, expand=True)
         
         # 状态栏
         self.status_label = ttk.Label(self.root, text="就绪", relief=tk.SUNKEN, anchor=tk.W)
@@ -662,6 +698,11 @@ class DiskCleanerGUI:
         """更新状态栏"""
         self.status_label.config(text=message)
         self.root.update()
+    
+    def on_drive_changed(self):
+        """盘符切换"""
+        drive = self.drive_var.get()
+        self.update_status(f"已切换到 {drive} 盘")
     
     def scan_junk(self):
         """扫描垃圾文件"""
