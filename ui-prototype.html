@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DiskCleaner - 智能清理</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0078D4;
+            --primary-dark: #106EBE;
+            --accent: #FF8C00;
+            --accent-hover: #E67E00;
+            --bg: #F5F7FA;
+            --card-bg: #FFFFFF;
+            --text: #1A1A1A;
+            --text-secondary: #666666;
+            --border: #E0E0E0;
+            --green: #28A745;
+            --yellow: #FFC107;
+            --red: #DC3545;
+            --shadow: 0 2px 8px rgba(0,0,0,0.08);
+            --radius: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* 顶部Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header h1::before {
+            content: "🧹";
+        }
+
+        .disk-info-mini {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--card-bg);
+            padding: 8px 16px;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            font-size: 13px;
+        }
+
+        .disk-bar {
+            width: 80px;
+            height: 6px;
+            background: #E0E0E0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .disk-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 3px;
+            width: 68%;
+        }
+
+        /* 主按钮区 */
+        .action-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 16px 24px;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            flex: 2;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--card-bg);
+            color: var(--text);
+            box-shadow: var(--shadow);
+        }
+
+        .btn-secondary:hover {
+            background: #F0F0F0;
+        }
+
+        .btn-accent {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-accent:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* 进度条 */
+        .progress-container {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow);
+            display: none;
+        }
+
+        .progress-container.active {
+            display: block;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #E0E0E0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* 结果卡片 */
+        .result-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .result-header {
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .result-title {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .result-size {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .result-body {
+            padding: 16px 20px;
+        }
+
+        .file-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #F0F0F0;
+            font-size: 13px;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-right: 16px;
+        }
+
+        .file-size {
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .tag {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-left: 8px;
+        }
+
+        .tag-green {
+            background: #D4EDDA;
+            color: #155724;
+        }
+
+        .tag-yellow {
+            background: #FFF3CD;
+            color: #856404;
+        }
+
+        .tag-red {
+            background: #F8D7DA;
+            color: #721C24;
+        }
+
+        /* 设置区域 */
+        .settings {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .setting-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--card-bg);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            box-shadow: var(--shadow);
+        }
+
+        .setting-item input {
+            width: 70px;
+            padding: 4px 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        /* 底部说明 */
+        .footer {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 12px;
+            margin-top: 24px;
+        }
+
+        /* Tab 切换 */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--card-bg);
+            padding: 4px;
+            border-radius: var(--radius);
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部 -->
+        <div class="header">
+            <h1>DiskCleaner</h1>
+            <div class="disk-info-mini">
+                <span>C盘 68%</span>
+                <div class="disk-bar">
+                    <div class="disk-bar-fill"></div>
+                </div>
+                <span>可用 2.1GB</span>
+            </div>
+        </div>
+
+        <!-- 一键清理大按钮 -->
+        <button class="btn btn-primary" style="font-size: 18px; padding: 20px; margin-bottom: 20px;">
+            🚀 一键清理垃圾文件
+        </button>
+
+        <!-- Tab 切换 -->
+        <div class="tabs">
+            <div class="tab active">🗑️ 垃圾清理</div>
+            <div class="tab">📁 大文件</div>
+            <div class="tab">💬 IM清理</div>
+        </div>
+
+        <!-- 设置 -->
+        <div class="settings">
+            <div class="setting-item">
+                <span>大文件筛选:</span>
+                <input type="number" value="500" id="sizeInput">
+                <span>MB 以上</span>
+            </div>
+        </div>
+
+        <!-- 进度条 -->
+        <div class="progress-container active">
+            <div class="progress-text">
+                <span>正在扫描垃圾文件...</span>
+                <span>35%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 35%;"></div>
+            </div>
+        </div>
+
+        <!-- 结果卡片 -->
+        <div class="result-card">
+            <div class="result-header">
+                <span class="result-title">🗑️ 可清理垃圾</span>
+                <span class="result-size">1.2 GB</span>
+            </div>
+            <div class="result-body">
+                <div class="file-list">
+                    <div class="file-item">
+                        <span class="file-name">Windows 临时文件</span>
+                        <span class="file-size">450 MB</span>
+                        <span class="tag tag-green">安全</span>
+                    </div>
+                    <div class="file-item">
+                        <span class="file-name">用户临时文件</span>
+                        <span class="file-size">320 MB</span>
+                        <span class="tag tag-green">安全</span>
+                    </div>
+                    <div class="file-item">
+                        <span class="file-name">Chrome 浏览器缓存</span>
+                        <span class="file-size">280 MB</span>
+                        <span class="tag tag-green">安全</span>
+                    </div>
+                    <div class="file-item">
+                        <span class="file-name">Windows 更新缓存</span>
+                        <span class="file-size">150 MB</span>
+                        <span class="tag tag-yellow">确认</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 大文件卡片 -->
+        <div class="result-card" style="display: none;">
+            <div class="result-header">
+                <span class="result-title">📁 大文件 (≥500MB)</span>
+                <span class="result-size">3.8 GB</span>
+            </div>
+            <div class="result-body">
+                <div class="file-list">
+                    <div class="file-item">
+                        <span class="file-name">pagefile.sys (系统文件)</span>
+                        <span class="file-size">2.5 GB</span>
+                        <span class="tag tag-red">保留</span>
+                    </div>
+                    <div class="file-item">
+                        <span class="file-name">hiberfil.sys (系统文件)</span>
+                        <span class="file-size">1.0 GB</span>
+                        <span class="tag tag-red">保留</span>
+                    </div>
+                    <div class="file-item">
+                        <span class="file-name">VMware Virtual Disk.vmdk</span>
+                        <span class="file-size">320 MB</span>
+                        <span class="tag tag-yellow">确认</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部说明 -->
+        <div class="footer">
+            <p>💡 绿色: 可安全清理 &nbsp;|&nbsp; 黄色: 需确认 &nbsp;|&nbsp; 红色: 系统文件保留</p>
+        </div>
+    </div>
+
+    <script>
+        // Tab 切换逻辑
+        const tabs = document.querySelectorAll('.tab');
+        const cards = document.querySelectorAll('.result-card');
+        
+        tabs.forEach((tab, index) => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                cards.forEach((c, i) => {
+                    c.style.display = i === index ? 'block' : 'none';
+                });
+            });
+        });
+
+        // 模拟进度条
+        let progress = 35;
+        const fill = document.querySelector('.progress-fill');
+        const progressText = document.querySelector('.progress-text span:last-child');
+        
+        setTimeout(() => {
+            const interval = setInterval(() => {
+                progress += 5;
+                fill.style.width = progress + '%';
+                progressText.textContent = progress + '%';
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    document.querySelector('.progress-container').classList.remove('active');
+                }
+            }, 200);
+        }, 500);
+    </script>
+</body>
+</html>

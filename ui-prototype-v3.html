@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DiskCleaner - 智能清理</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0078D4;
+            --primary-dark: #106EBE;
+            --accent: #FF8C00;
+            --accent-hover: #E67E00;
+            --bg: #F5F7FA;
+            --card-bg: #FFFFFF;
+            --text: #1A1A1A;
+            --text-secondary: #666666;
+            --border: #E0E0E0;
+            --green: #28A745;
+            --yellow: #FFC107;
+            --red: #DC3545;
+            --orange: #FF6B00;
+            --shadow: 0 2px 8px rgba(0,0,0,0.08);
+            --radius: 12px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .container { max-width: 900px; margin: 0 auto; }
+
+        /* 顶部Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .header h1 { font-size: 22px; font-weight: 600; }
+
+        /* 盘符选择 */
+        .drive-selector {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .drive-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--card-bg);
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .drive-item:hover { transform: translateY(-2px); }
+
+        .drive-item.active {
+            border-color: var(--primary);
+            background: #EBF5FF;
+        }
+
+        .drive-item.warning {
+            border-color: var(--orange);
+            background: #FFF5EB;
+        }
+
+        .drive-icon { font-size: 20px; }
+
+        .drive-info { display: flex; flex-direction: column; gap: 2px; }
+
+        .drive-name { font-size: 14px; font-weight: 500; }
+
+        .drive-usage { font-size: 11px; color: var(--text-secondary); }
+
+        .usage-bar {
+            width: 60px;
+            height: 4px;
+            background: #E0E0E0;
+            border-radius: 2px;
+            margin-top: 4px;
+        }
+
+        .usage-fill {
+            height: 100%;
+            border-radius: 2px;
+            background: var(--green);
+        }
+
+        .usage-fill.warning { background: var(--orange); }
+        .usage-fill.danger { background: var(--red); }
+
+        /* 警告提示 */
+        .warning-banner {
+            background: #FFF3CD;
+            border: 1px solid #FFEeba;
+            color: #856404;
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            font-size: 13px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 主按钮 */
+        .action-bar { margin-bottom: 20px; }
+
+        .btn {
+            width: 100%;
+            padding: 18px;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #FF6B00);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255,140,0,0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255,140,0,0.4);
+        }
+
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* Tab */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--card-bg);
+            padding: 4px;
+            border-radius: var(--radius);
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .tab.active { background: var(--primary); color: white; }
+
+        /* 设置区 */
+        .settings {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .setting-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--card-bg);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            box-shadow: var(--shadow);
+        }
+
+        .setting-item input {
+            width: 70px;
+            padding: 4px 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        /* 进度条 */
+        .progress-container {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+            display: none;
+        }
+
+        .progress-container.active { display: block; }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: #E0E0E0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* 结果卡片 */
+        .result-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .result-header {
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .result-title { font-size: 15px; font-weight: 500; }
+
+        .result-size {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .result-body { padding: 12px 18px; }
+
+        .file-list { max-height: 220px; overflow-y: auto; }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #F0F0F0;
+            font-size: 13px;
+        }
+
+        .file-item:last-child { border-bottom: none; }
+
+        .file-check {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .file-check input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+
+        .file-check input[type="checkbox"]:disabled + span { color: var(--text-secondary); cursor: not-allowed; }
+
+        .file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .file-size { color: var(--text-secondary); white-space: nowrap; margin-right: 8px; }
+
+        .tag { padding: 2px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap; }
+        .tag-green { background: #D4EDDA; color: #155724; }
+        .tag-yellow { background: #FFF3CD; color: #856404; }
+        .tag-red { background: #F8D7DA; color: #721C24; }
+
+        /* 底部统计 */
+        .summary-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #F8F9FA;
+            border-top: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        .summary-selected { color: var(--primary); font-weight: 500; }
+
+        .select-all {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 18px;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .select-all input { width: 16px; height: 16px; }
+
+        .footer { text-align: center; color: var(--text-secondary); font-size: 12px; margin-top: 20px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部 -->
+        <div class="header">
+            <h1>🧹 DiskCleaner</h1>
+        </div>
+
+        <!-- 盘符选择 -->
+        <div class="drive-selector">
+            <div class="drive-item warning active">
+                <span class="drive-icon">💾</span>
+                <div class="drive-info">
+                    <span class="drive-name">C:</span>
+                    <span class="drive-usage">68% 可用 2.1GB</span>
+                    <div class="usage-bar"><div class="usage-fill warning" style="width: 68%;"></div></div>
+                </div>
+            </div>
+            <div class="drive-item">
+                <span class="drive-icon">💿</span>
+                <div class="drive-info">
+                    <span class="drive-name">D:</span>
+                    <span class="drive-usage">45% 可用 220GB</span>
+                    <div class="usage-bar"><div class="usage-fill" style="width: 45%;"></div></div>
+                </div>
+            </div>
+            <div class="drive-item">
+                <span class="drive-icon">📀</span>
+                <div class="drive-info">
+                    <span class="drive-name">E:</span>
+                    <span class="drive-usage">30% 可用 350GB</span>
+                    <div class="usage-bar"><div class="usage-fill" style="width: 30%;"></div></div>
+                </div>
+            </div>
+            <div class="drive-item">
+                <span class="drive-icon">🔌</span>
+                <div class="drive-info">
+                    <span class="drive-name">F:</span>
+                    <span class="drive-usage">12% 可用 880GB</span>
+                    <div class="usage-bar"><div class="usage-fill" style="width: 12%;"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 警告提示 -->
+        <div class="warning-banner">
+            ⚠️ 清理数据需谨慎，建议定期做好备份，避免数据丢失！
+        </div>
+
+        <!-- 一键清理大按钮 -->
+        <div class="action-bar">
+            <button class="btn btn-primary">
+                🚀 一键清理选中文件
+            </button>
+        </div>
+
+        <!-- Tab -->
+        <div class="tabs">
+            <div class="tab active" data-tab="junk">🗑️ 垃圾清理</div>
+            <div class="tab" data-tab="large">📁 大文件清理</div>
+            <div class="tab" data-tab="im">💬 微信/企微清理</div>
+        </div>
+
+        <!-- 大文件清理设置（仅大文件清理Tab显示） -->
+        <div class="settings" id="largeSettings">
+            <div class="setting-item">
+                <span>扫描</span>
+                <input type="number" value="1024" id="sizeInput">
+                <span>MB 以上文件</span>
+            </div>
+        </div>
+
+        <!-- 进度条 -->
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-text">
+                <span id="progressText">正在扫描C盘...</span>
+                <span id="progressPercent">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+            </div>
+        </div>
+
+        <!-- Tab1: 垃圾清理 -->
+        <div class="tab-content" id="junk">
+            <div class="result-card">
+                <div class="result-header">
+                    <span class="result-title">🗑️ C盘可清理垃圾</span>
+                    <span class="result-size">850 MB</span>
+                </div>
+                <div class="select-all">
+                    <input type="checkbox" id="selectAllJunk" checked>
+                    <label for="selectAllJunk">全选</label>
+                </div>
+                <div class="result-body">
+                    <div class="file-list">
+                        <div class="file-item">
+                            <div class="file-check">
+                                <input type="checkbox" id="junk1" checked>
+                                <span class="file-name">Windows 临时文件</span>
+                            </div>
+                            <span class="file-size">320 MB</span>
+                            <span class="tag tag-green">安全</span>
+                        </div>
+                        <div class="file-item">
+                            <div class="file-check">
+                                <input type="checkbox" id="junk2" checked>
+                                <span class="file-name">用户临时文件 (Temp)</span>
+                            </div>
+                            <span class="file-size">280 MB</span>
+                            <span class="tag tag-green">安全</span>
+                        </div>
+                        <div class="file-item">
+                            <div class="file-check">
+                                <input type="checkbox" id="junk3" checked>
+                                <span class="file-name">Chrome 浏览器缓存</span>
+                            </div>
+                            <span class="file-size">180 MB</span>
+                            <span class="tag tag-green">安全</span>
+                        </div>
+                        <div class="file-item">
+                            <div class="file-check">
+                                <input type="checkbox" id="junk4">
+                                <span class="file-name">Windows 更新缓存</span>
+                            </div>
+                            <span class="file-size">70 MB</span>
+                            <span class="tag tag-yellow">确认</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="summary-bar">
+                    <span class="summary-selected">已选: 780 MB</span>
+                    <span>共 4 项</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab2: 大文件清理 -->
+        <div class="tab-content hidden" id="large">
+            <div class="result-card">
+                <div class="result-header">
+                    <span class="result-title">📁 C盘大文件清理 (≥1GB)</span>
+                    <span class="result-size">3.5 GB</span>
+                </div>
+                <div class="select-all">
+                    <input type="checkbox" id="selectAllLarge">
+                    <label for="selectAllLarge">全选</label>
+                </div>
+                <div class="result-body">
+                    <div class="file-list">
+                        <div class="file-item">
+                            <div class="file-check">
+                                <input type="checkbox" id="large1" disabled>
+                                <span class="file-name">pagefile.sys (系统文件)</span>
+                            </div>
+                            <span class="file-size">2.5 GB</span>
+                            <span class="tag tag-red">系统保留</span>
+                        </div>
+                        <div class="file-item">
+                            <div class="file-check">
+                                <input type="checkbox" id="large2" disabled>
+                                <span class="file-name">hiberfil.sys (休眠文件)</span>
+                            </div>
+                            <span class="file-size">1.0 GB</span>
+                            <span class="tag tag-red">系统保留</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="summary-bar">
+                    <span class="summary-selected">已选: 0 MB</span>
+                    <span>共 2 项 (均系统保留)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab3: IM清理 -->
+        <div class="tab-content hidden" id="im">
+            <div class="result-card">
+                <div class="result-header">
+                    <span class="result-title">💬 C盘微信/企微专项清理</span>
+                    <span class="result-size">450 MB</span>
+                </div>
+                <div class="select-all">
+                    <input type="checkbox" id="selectAllIM" checked>
+                    <label for="selectAllIM">全选</label>
+                </div>
+                <div class="result-body">
+                    <div class="file-list">
+                        <div class="file-item">
+                            <div class="file-check">
+                                <input type="checkbox" id="im1" checked>
+                                <span class="file-name">微信 - 图片/视频缓存</span>
+                            </div>
+                            <span class="file-size">280 MB</span>
+                            <span class="tag tag-green">安全</span>
+                        </div>
+                        <div class="file-item">
+                            <div class="file-check">
+                                <input type="checkbox" id="im2" checked>
+                                <span class="file-name">微信 - 文件缓存</span>
+                            </div>
+                            <span class="file-size">120 MB</span>
+                            <span class="tag tag-green">安全</span>
+                        </div>
+                        <div class="file-item">
+                            <div class="file-check">
+                                <input type="checkbox" id="im3">
+                                <span class="file-name">企业微信 - 聊天记录</span>
+                            </div>
+                            <span class="file-size">50 MB</span>
+                            <span class="tag tag-yellow">确认</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="summary-bar">
+                    <span class="summary-selected">已选: 400 MB</span>
+                    <span>共 3 项</span>
+               盘</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>💡 绿色: 默认勾选安全清理 &nbsp;|&nbsp; 黄色: 需手动确认 &nbsp;|&nbsp; 红色: 系统文件无法清理</p>
+            <p style="margin-top: 6px;">💡 橙色边框表示使用率较高，建议优先清理</p>
+        </div>
+    </div>
+
+    <script>
+        // 盘符选择
+        const driveItems = document.querySelectorAll('.drive-item');
+        
+        driveItems.forEach(item => {
+            item.addEventListener('click', () => {
+                driveItems.forEach(d => d.classList.remove('active'));
+                item.classList.add('active');
+                
+                // 切换到C盘时显示警告样式
+                const isWarning = item.classList.contains('warning');
+                document.querySelector('.drive-selector').dataset.selected = item.querySelector('.drive-name').textContent;
+            });
+        });
+
+        // Tab 切换
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const largeSettings = document.getElementById('largeSettings');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const progressPercent = document.getElementById('progressPercent');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                const tabName = tab.dataset.tab;
+                tabContents.forEach(content => content.classList.add('hidden'));
+                document.getElementById(tabName).classList.remove('hidden');
+                
+                largeSettings.style.display = tabName === 'large' ? 'flex' : 'none';
+            });
+        });
+
+        // 进度条
+        function simulateProgress() {
+            progressContainer.classList.add('active');
+            let progress = 0;
+            
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 100) progress = 100;
+                
+                progressFill.style.width = progress + '%';
+                progressPercent.textContent = Math.floor(progress) + '%';
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => { progressContainer.classList.remove('active'); }, 500);
+                }
+            }, 200);
+        }
+
+        setTimeout(simulateProgress, 500);
+
+        tabs[1].addEventListener('click', () => { setTimeout(simulateProgress, 300); });
+    </script>
+</body>
+</html>

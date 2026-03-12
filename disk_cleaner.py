@@ -51,12 +51,17 @@ WECOM_SEARCH_PATHS = [
     os.path.expandvars("%LOCALAPPDATA%\\Tencent\\WeCom"),
 ]
 
+# 企微子目录（按用户分组的目录名）
+WECOM_USER_DIRS = ["WDFileRecv", "Doc", "Data"]
+
 # 微信搜索路径
 WECHAT_SEARCH_PATHS = [
     os.path.expandvars("%APPDATA%\\Tencent\\WeChat"),
-    os.path.expandvars("%APPDATA%\\Tencent\\WeChat\\Files"),
     os.path.expandvars("%LOCALAPPDATA%\\Tencent\\WeChat"),
 ]
+
+# 微信用户目录（MicroMsg下的每个文件夹对应一个用户）
+WECHAT_USER_DIR = "MicroMsg"
 
 # 可清理目录（绿色）
 CLEANABLE_DIRS = ["Cache", "logs", "Blob", "Image", "Video", "File"]
@@ -290,36 +295,126 @@ class DiskCleaner:
     def scan_im_files(self, days_threshold=365):
         """
         扫描 IM 数据（企业微信+微信）
-        返回: 按安全级别分类的结果
+        返回: 按用户分组的结果
         """
         self._update_status("正在扫描 IM 数据...")
         
+        # 按用户分组的结果
         results = {
-            'green': [],   # 可清理
-            'yellow': [],  # 需确认
-            'red': [],     # 保留
+            'wecom': {},   # 企微: {用户: [文件列表]}
+            'wechat': {},  # 微信: {用户: [文件列表]}
             'total_size': 0
         }
         
         # 扫描企微
         for base_path in WECOM_SEARCH_PATHS:
             if os.path.exists(base_path):
-                self._scan_directory_tree(base_path, results, "企微", days_threshold)
+                self._scan_wecom_by_user(base_path, results['wecom'], days_threshold)
         
         # 扫描微信
         for base_path in WECHAT_SEARCH_PATHS:
             if os.path.exists(base_path):
-                self._scan_directory_tree(base_path, results, "微信", days_threshold)
+                self._scan_wechat_by_user(base_path, results['wechat'], days_threshold)
         
-        self._update_status(f"IM 扫描完成: 绿色{len(results['green'])}项, 黄色{len(results['yellow'])}项, 红色{len(results['red'])}项")
+        # 统计总大小
+        for user_data in results['wecom'].values():
+            for f in user_data:
+                results['total_size'] += f['size']
+        for user_data in results['wechat'].values():
+            for f in user_data:
+                results['total_size'] += f['size']
+        
+        wecom_users = len(results['wecom'])
+        wechat_users = len(results['wechat'])
+        
+        self._update_status(f"IM 扫描完成: 企微{len(results['wecom'])}用户, 微信{len(results['wechat'])}用户")
         return results
     
-    def _scan_directory_tree(self, base_path, results, im_name, days_threshold):
-        """递归扫描目录"""
+    def _scan_wecom_by_user(self, base_path, user_results, days_threshold):
+        """按用户扫描企微数据"""
         try:
+            # 遍历企微目录，识别用户目录
             for root, dirs, files in os.walk(base_path):
+                # 检查当前目录是否是用户目录
+                dirname = os.path.basename(root)
+                
                 # 跳过系统目录
-                dirs[:] = [d for d in dirs if not d.startswith('.') and d not in ['System']]
+                if dirname.startswith('.') or dirname in ['System', 'logs', 'Cache']:
+                    continue
+                
+                # 判断是否为用户目录（有文件或子目录）
+                user_name = dirname  # 使用目录名作为用户名
+                
+                if user_name not in user_results:
+                    user_results[user_name] = []
+                
+                # 扫描该用户目录下的文件
+                for f in files:
+                    try:
+                        fp = os.path.join(root, f)
+                        size = os.path.getsize(fp)
+                        if size == 0:
+                            continue
+                        
+                        mtime = os.path.getmtime(fp)
+                        mtime_str = datetime.datetime.fromtimestamp(mtime).strftime("%Y-%m-%d")
+                        age_days = (datetime.datetime.now().timestamp() - mtime) / (24*3600)
+                        
+                        # 根据时间判断分类
+                        if age_days > days_threshold:
+                            classification = 'green'
+                            reason = f"超过{days_threshold}天"
+                        else:
+                            classification = 'yellow'
+                            reason = f"{int(age_days)}天前"
+                        
+                        file_info = {
+                            'path': fp,
+                            'name': f,
+                            'size': size,
+                            'user': user_name,
+                            'im': '企微',
+                            'mtime': mtime_str,
+                            'age_days': int(age_days),
+                            'reason': reason,
+                            'classification': classification,
+                            'relative_path': fp.replace(base_path, '').strip('\\')
+                        }
+                        
+                        user_results[user_name].append(file_info)
+                        
+                    except (PermissionError, OSError, FileNotFoundError):
+                        continue
+                
+                # 用户目录下可能有子目录，继续递归
+                
+        except Exception as e:
+            pass
+    
+    def _scan_wechat_by_user(self, base_path, user_results, days_threshold):
+        """按用户扫描微信数据"""
+        try:
+            # 微信: 目录结构是 MicroMsg/微信ID/...
+            micromsg_path = os.path.join(base_path, "MicroMsg")
+            if not os.path.exists(micromsg_path):
+                return
+            
+            # 遍历微信用户目录
+            for root, dirs, files in os.walk(micromsg_path):
+                dirname = os.path.basename(root)
+                
+                # 跳过非用户目录
+                if dirname in ['MicroMsg', 'System', '.'] or len(dirname) < 10:
+                    continue
+                
+                # 微信ID通常是很长的字符串，隐藏处理
+                wechat_id = dirname[:8] + "***" if len(dirname) > 8 else dirname
+                
+                if wechat_id not in user_results:
+                    user_results[wechat_id] = []
+                
+                # 扫描该用户目录下的文件（只扫描常见缓存目录）
+                cache_dirs = ['Image', 'File', 'Video', 'Voice', 'Avatar']
                 
                 for f in files:
                     try:
@@ -328,23 +423,36 @@ class DiskCleaner:
                         if size == 0:
                             continue
                         
-                        classification, reason = self.classify_file(fp, days_threshold)
+                        mtime = os.path.getmtime(fp)
+                        mtime_str = datetime.datetime.fromtimestamp(mtime).strftime("%Y-%m-%d")
+                        age_days = (datetime.datetime.now().timestamp() - mtime) / (24*3600)
+                        
+                        # 根据时间判断分类
+                        if age_days > days_threshold:
+                            classification = 'green'
+                            reason = f"超过{days_threshold}天"
+                        else:
+                            classification = 'yellow'
+                            reason = f"{int(age_days)}天前"
                         
                         file_info = {
                             'path': fp,
                             'name': f,
                             'size': size,
-                            'im': im_name,
+                            'user': wechat_id,
+                            'im': '微信',
+                            'mtime': mtime_str,
+                            'age_days': int(age_days),
                             'reason': reason,
+                            'classification': classification,
                             'relative_path': fp.replace(base_path, '').strip('\\')
                         }
                         
-                        results[classification].append(file_info)
-                        results['total_size'] += size
+                        user_results[wechat_id].append(file_info)
                         
                     except (PermissionError, OSError, FileNotFoundError):
                         continue
-                        
+                
         except Exception as e:
             pass
 
