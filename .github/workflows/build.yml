@@ -25,10 +25,6 @@ jobs:
         with:
           python-version: ${{ inputs.python_version || '3.11' }}
       
-      - name: Install UPX
-        run: |
-          choco install upx -y
-      
       - name: Install dependencies
         run: |
           pip install psutil pyinstaller
@@ -36,10 +32,6 @@ jobs:
       - name: Build EXE
         run: |
           pyinstaller --onefile --windowed --name DiskCleaner --clean disk_cleaner.py
-      
-      - name: Compress with UPX
-        run: |
-          upx --best dist/DiskCleaner.exe
       
       - name: Check EXE size
         run: |
