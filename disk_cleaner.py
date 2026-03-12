@@ -570,7 +570,7 @@ class DiskCleanerGUI:
         
         # 垃圾文件页面
         self.junk_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.junk_frame, text="🗑️ 垃圾文件")
+        self.notebook.add(self.junk_frame, text="🗑️ 垃圾清理")
         
         # 垃圾文件列表
         junk_list_frame = ttk.Frame(self.junk_frame)
@@ -597,7 +597,7 @@ class DiskCleanerGUI:
         
         # 大文件页面
         self.large_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.large_frame, text="📁 大文件")
+        self.notebook.add(self.large_frame, text="📁 大文件清理")
         
         large_list_frame = ttk.Frame(self.large_frame)
         large_list_frame.pack(fill=tk.BOTH, expand=True)
@@ -623,7 +623,7 @@ class DiskCleanerGUI:
         
         # IM 清理页面
         self.im_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.im_frame, text="💬 IM清理")
+        self.notebook.add(self.im_frame, text="💬 微信/企微清理")
         
         # IM 页面内容
         im_top_frame = ttk.Frame(self.im_frame)
