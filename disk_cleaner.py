@@ -560,6 +560,17 @@ class DiskCleanerGUI:
                                       command=self.scan_im)
         self.scan_im_btn.pack(side=tk.LEFT, padx=5, expand=True)
         
+        # 进度条
+        self.progress_frame = ttk.Frame(self.root)
+        self.progress_frame.pack(fill=tk.X, padx=10, pady=(0, 5))
+        
+        self.progress_label = ttk.Label(self.progress_frame, text="")
+        self.progress_label.pack(anchor=tk.W)
+        
+        self.progress_bar = ttk.Progressbar(self.progress_frame, mode='indeterminate')
+        self.progress_bar.pack(fill=tk.X)
+        self.progress_frame.pack_forget()  # 默认隐藏
+        
         # 状态栏
         self.status_label = ttk.Label(self.root, text="就绪", relief=tk.SUNKEN, anchor=tk.W)
         self.status_label.pack(fill=tk.X, padx=10, pady=5)
@@ -714,10 +725,23 @@ class DiskCleanerGUI:
         drive = self.drive_var.get()
         self.update_status(f"已切换到 {drive} 盘")
     
+    def show_progress(self, message):
+        """显示进度条"""
+        self.progress_label.config(text=message)
+        self.progress_frame.pack(fill=tk.X, padx=10, pady=(0, 5), after=self.status_label.master.pack_info()["padx"])
+        self.progress_bar.start(10)
+        self.root.update()
+    
+    def hide_progress(self):
+        """隐藏进度条"""
+        self.progress_bar.stop()
+        self.progress_frame.pack_forget()
+        self.root.update()
+    
     def scan_junk(self):
         """扫描垃圾文件"""
         self.scan_junk_btn.config(state=tk.DISABLED)
-        self.update_status("正在扫描垃圾文件...")
+        self.show_progress("正在扫描垃圾文件...")
         
         # 使用线程避免界面卡顿
         thread = threading.Thread(target=self._scan_junk_thread)
@@ -730,6 +754,7 @@ class DiskCleanerGUI:
         
         # 更新界面
         self.root.after(0, self._update_junk_ui)
+        self.root.after(0, self.hide_progress)
     
     def _update_junk_ui(self):
         """更新垃圾文件界面"""
@@ -755,7 +780,7 @@ class DiskCleanerGUI:
     def scan_large(self):
         """扫描大文件"""
         self.scan_large_btn.config(state=tk.DISABLED)
-        self.update_status("正在扫描大文件...")
+        self.show_progress("正在扫描大文件...")
         
         thread = threading.Thread(target=self._scan_large_thread)
         thread.daemon = True
@@ -772,6 +797,7 @@ class DiskCleanerGUI:
         self.cleaner.scan_large_files(min_size_mb=min_size, max_files=30)
         
         self.root.after(0, self._update_large_ui)
+        self.root.after(0, self.hide_progress)
     
     def _update_large_ui(self):
         """更新大文件界面"""
@@ -814,6 +840,7 @@ class DiskCleanerGUI:
         self.cleaner.results['im_files'] = results
         
         self.root.after(0, self._update_im_ui)
+        self.root.after(0, self.hide_progress)
     
     def _update_im_ui(self):
         """更新 IM 清理界面"""
