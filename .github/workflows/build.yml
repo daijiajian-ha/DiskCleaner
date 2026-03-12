@@ -12,53 +12,27 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      
+        uses: actions/checkoutBv4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ inputs.python_version || '3.11' }}
-      
-      - name: Install dependencies
-        run: |
-          pip install psutil pyinstaller
-      
-      - name: Build EXE
-        run: |
-          pyinstaller --onefile --windowed --name DiskCleaner disk_cleaner.py --clean
-      
-      - name: Upload EXE artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: DiskCleaner-EXE
-          path: dist/DiskCleaner.exe
-          retention-days: 30
 
-  # 打包成 ZIP 下载
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Download EXE
-        uses: actions/download-artifact@v4
-        with:
-          name: DiskCleaner-EXE
-      
-      - name: Create ZIP
-        run: |
-          mkdir -p release
-          mv DiskCleaner.exe release/
-          cd release
-          zip -r DiskCleaner-Windows.zip DiskCleaner.exe
-      
-      - name: Upload ZIP
-        uses: softprops/action-gh-release@v1
-        with:
-          files: release/DiskCleaner-Windows.zip
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        - name: Install dependencies
+         run: |
+            pip install psutil piinstaller
+
+        - name: Build EXe
+          run: |
+            pyinstaller --onefile --windowed --name DiskCleaner disk_cleaner.py --clean
+
+        - name: Upload EXE artifact
+          uses: actions/upload-artifact@v4
+          with:
+            name: DiskCleaner-EXE
+            path: dist/DiskCleaner.exe
+            retention-days: 30
