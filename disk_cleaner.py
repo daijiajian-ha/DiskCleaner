@@ -599,6 +599,16 @@ class DiskCleanerGUI:
         self.large_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.large_frame, text="📁 大文件清理")
         
+        # 大文件设置
+        large_top_frame = ttk.Frame(self.large_frame)
+        large_top_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        ttk.Label(large_top_frame, text="扫描:").pack(side=tk.LEFT, padx=5)
+        self.large_size_var = tk.StringVar(value="1024")
+        self.large_size_entry = ttk.Entry(large_top_frame, textvariable=self.large_size_var, width=8)
+        self.large_size_entry.pack(side=tk.LEFT, padx=5)
+        ttk.Label(large_top_frame, text="MB 以上文件").pack(side=tk.LEFT)
+        
         large_list_frame = ttk.Frame(self.large_frame)
         large_list_frame.pack(fill=tk.BOTH, expand=True)
         
@@ -753,7 +763,13 @@ class DiskCleanerGUI:
     
     def _scan_large_thread(self):
         """扫描大文件线程"""
-        self.cleaner.scan_large_files(min_size_mb=100, max_files=30)
+        # 获取用户设置的大小
+        try:
+            min_size = int(self.large_size_var.get())
+        except:
+            min_size = 1024
+        
+        self.cleaner.scan_large_files(min_size_mb=min_size, max_files=30)
         
         self.root.after(0, self._update_large_ui)
     
