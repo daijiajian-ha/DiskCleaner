@@ -35,13 +35,7 @@ jobs:
       
       - name: Build EXE (压缩优化版)
         run: |
-          # 使用 UPX 压缩，减少体积
-          pyinstaller --onefile --windowed --name DiskCleaner `
-            --add-binary "C:\Windows\System32\python*.dll;." `
-            --exclude-module tkinter-test `
-            --clean `
-            disk_cleaner.py
-          # UPX 压缩
+          pyinstaller --onefile --windowed --name DiskCleaner --clean disk_cleaner.py
           upx --best --lzma dist/DiskCleaner.exe
       
       - name: Check EXE size
