@@ -5,12 +5,6 @@ on:
     branches:
       - master
   workflow_dispatch:
-    inputs:
-      python_version:
-        description: 'Python version'
-        required: false
-        default: '3.11'
-        type: string
 
 jobs:
   build:
@@ -23,26 +17,35 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ inputs.python_version || '3.11' }}
+          python-version: '3.11'
       
       - name: Install dependencies
         run: |
-          pip install psutil pyinstaller
+          pip install nuitka zstandard
       
-      - name: Build EXE
+      - name: Build EXE with Nuitka
         run: |
-          pyinstaller --onefile --windowed --name DiskCleaner --clean disk_cleaner.py
+          python -m nuitka --onefile --windows-disable-console --enable-plugin=tk-inter \
+            --lto=yes --jobs=4 \
+            --windows-icon-from-ico=NONE \
+            --output-filename=DiskCleaner \
+            --remove-output \
+            disk_cleaner.py
+        shell: bash
       
       - name: Check EXE size
         shell: pwsh
         run: |
-          $file = Get-Item dist/DiskCleaner.exe
+          $file = Get-Item DiskCleaner.exe
           $sizeMB = [math]::Round($file.Length / 1MB, 2)
           Write-Host "EXE Size: $sizeMB MB"
+          if ($sizeMB -gt 10) {
+            Write-Host "WARNING: Size is larger than expected!" -ForegroundColor Yellow
+          }
       
       - name: Upload EXE artifact
         uses: actions/upload-artifact@v4
         with:
           name: DiskCleaner-EXE
-          path: dist/DiskCleaner.exe
+          path: DiskCleaner.exe
           retention-days: 30
