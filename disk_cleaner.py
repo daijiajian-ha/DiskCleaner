@@ -12,12 +12,34 @@ import sys
 import threading
 import time
 from pathlib import Path
+import ctypes
+from ctypes import wintype
 
+# 用 ctypes 替代 psutil 获取磁盘空间
 try:
-    import psutil
-except ImportError:
-    print("请先安装 psutil: pip install psutil")
-    sys.exit(1)
+    kernel32 = ctypes.windll.kernel32
+    GetDiskFreeSpaceEx = kernel32.GetDiskFreeSpaceExW
+    GetDiskFreeSpaceEx.argtypes = [wintype.LPCWSTR, ctypes.POINTER(ctypes.c_ulonglong), ctypes.POINTER(ctypes.c_ulonglong), ctypes.POINTER(ctypes.c_ulonglong)]
+    GetDiskFreeSpaceEx.restype = wintype.BOOL
+    
+    def get_disk_usage(path):
+        free_bytes = ctypes.c_ulonglong(0)
+        total_bytes = ctypes.c_ulonglong(0)
+        total_free = ctypes.c_ulonglong(0)
+        if GetDiskFreeSpaceEx(path, ctypes.byref(free_bytes), ctypes.byref(total_bytes), ctypes.byref(total_free)):
+            used = total_bytes.value - free_bytes.value
+            return type('obj', (object,), {
+                'total': total_bytes.value,
+                'used': used,
+                'free': free_bytes.value,
+                'percent': round(used / total_bytes.value * 100, 1) if total_bytes.value > 0 else 0
+            })()
+        return None
+    PSUTIL_AVAILABLE = True
+except:
+    PSUTIL_AVAILABLE = False
+    def get_disk_usage(path):
+        return None
 
 # 尝试导入 tkinter
 try:
@@ -510,7 +532,7 @@ class DiskCleanerGUI:
         for drive in ['C', 'D', 'E', 'F']:
             try:
                 path = drive + ":\\"
-                disk = psutil.disk_usage(path)
+                disk = get_disk_usage(path)
                 btn = ttk.Radiobutton(
                     self.drive_frame, 
                     text=f"{drive}: {disk.percent}%", 
@@ -962,7 +984,7 @@ class DiskCleanerGUI:
         """刷新"""
         # 刷新磁盘信息
         try:
-            disk = psutil.disk_usage('C:\\')
+            disk = get_disk_usage('C:\\')
             self.disk_label.config(text=f"C盘: {self.cleaner.format_size(disk.used)} / {self.cleaner.format_size(disk.total)} ({disk.percent}%)")
         except:
             pass
