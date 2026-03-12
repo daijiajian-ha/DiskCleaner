@@ -29,6 +29,41 @@ except ImportError:
     TKINTER_AVAILABLE = False
     print("警告: tkinter 不可用，将使用命令行模式")
 
+import datetime
+
+
+# ============== IM 清理配置 ==============
+
+# 系统保护文件（红色-建议保留）
+SYSTEM_PROTECTED_FILES = [
+    "pagefile.sys", "hiberfil.sys", "swapfile.sys",
+    "desktop.ini", "thumbs.db", "$Recycle.Bin",
+    "System Volume Information"
+]
+
+# 系统扩展名
+SYSTEM_EXTENSIONS = [".sys", ".drv"]
+
+# 企微搜索路径（按优先级）
+WECOM_SEARCH_PATHS = [
+    os.path.expandvars("%USERPROFILE%\\Documents\\WXWork"),
+    os.path.expandvars("%APPDATA%\\Tencent\\WeCom"),
+    os.path.expandvars("%LOCALAPPDATA%\\Tencent\\WeCom"),
+]
+
+# 微信搜索路径
+WECHAT_SEARCH_PATHS = [
+    os.path.expandvars("%APPDATA%\\Tencent\\WeChat"),
+    os.path.expandvars("%APPDATA%\\Tencent\\WeChat\\Files"),
+    os.path.expandvars("%LOCALAPPDATA%\\Tencent\\WeChat"),
+]
+
+# 可清理目录（绿色）
+CLEANABLE_DIRS = ["Cache", "logs", "Blob", "Image", "Video", "File"]
+
+# 需要确认的目录（黄色）
+CONFIRM_DIRS = ["File", "Data"]
+
 
 class DiskCleaner:
     """C盘清理工具主类"""
@@ -59,11 +94,13 @@ class DiskCleaner:
             'junk_files': [],
             'large_files': [],
             'total_junk_size': 0,
-            'total_large_size': 0
+            'total_large_size': 0,
+            'im_files': {'green': [], 'yellow': [], 'red': [], 'total_size': 0}
         }
         self.username = os.environ.get('USERNAME', 'Default')
         self.scan_callback = None
         self.status_callback = None
+        self.im_days_threshold = 365  # 默认1年
     
     def format_size(self, size_bytes):
         """格式化文件大小"""
@@ -196,6 +233,120 @@ class DiskCleaner:
         if self.status_callback:
             self.status_callback(message)
         print(message)
+    
+    # ============== IM 清理功能 ==============
+    
+    def classify_file(self, filepath, days_threshold=365):
+        """
+        分类文件安全级别
+        返回: 'green'(安全清理) / 'yellow'(谨慎) / 'red'(保留)
+        """
+        try:
+            filename = os.path.basename(filepath)
+            
+            # 红色：系统保护文件
+            if filename in SYSTEM_PROTECTED_FILES:
+                return 'red', '系统保护文件'
+            
+            # 红色：系统扩展名
+            if any(filename.endswith(ext) for ext in SYSTEM_EXTENSIONS):
+                return 'red', '系统文件'
+            
+            # 红色：最近24小时访问（正在使用）
+            mtime = os.path.getmtime(filepath)
+            if datetime.datetime.now().timestamp() - mtime < 24*3600:
+                return 'red', '最近使用'
+            
+            # 黄色：隐藏文件（除非在缓存目录）
+            if filename.startswith('.') and not self._is_user_cache(filepath):
+                return 'red', '隐藏文件'
+            
+            # 绿色：已知可清理目录
+            dirname = os.path.basename(os.path.dirname(filepath))
+            if dirname in CLEANABLE_DIRS:
+                return 'green', f'缓存目录({dirname})'
+            
+            # 黄色：需要确认的目录
+            if dirname in CONFIRM_DIRS:
+                return 'yellow', f'用户目录({dirname})'
+            
+            # 根据时间判断
+            mtime = os.path.getmtime(filepath)
+            age_days = (datetime.datetime.now().timestamp() - mtime) / (24*3600)
+            
+            if age_days > days_threshold:
+                return 'green', f'长期未用({int(age_days)}天)'
+            else:
+                return 'yellow', f'近期文件({int(age_days)}天)'
+                
+        except Exception as e:
+            return 'yellow', '无法判断'
+    
+    def _is_user_cache(self, filepath):
+        """判断是否在用户缓存目录"""
+        cache_paths = ["Cache", "Temp", "logs", "Blob"]
+        return any(p in filepath for p in cache_paths)
+    
+    def scan_im_files(self, days_threshold=365):
+        """
+        扫描 IM 数据（企业微信+微信）
+        返回: 按安全级别分类的结果
+        """
+        self._update_status("正在扫描 IM 数据...")
+        
+        results = {
+            'green': [],   # 可清理
+            'yellow': [],  # 需确认
+            'red': [],     # 保留
+            'total_size': 0
+        }
+        
+        # 扫描企微
+        for base_path in WECOM_SEARCH_PATHS:
+            if os.path.exists(base_path):
+                self._scan_directory_tree(base_path, results, "企微", days_threshold)
+        
+        # 扫描微信
+        for base_path in WECHAT_SEARCH_PATHS:
+            if os.path.exists(base_path):
+                self._scan_directory_tree(base_path, results, "微信", days_threshold)
+        
+        self._update_status(f"IM 扫描完成: 绿色{len(results['green'])}项, 黄色{len(results['yellow'])}项, 红色{len(results['red'])}项")
+        return results
+    
+    def _scan_directory_tree(self, base_path, results, im_name, days_threshold):
+        """递归扫描目录"""
+        try:
+            for root, dirs, files in os.walk(base_path):
+                # 跳过系统目录
+                dirs[:] = [d for d in dirs if not d.startswith('.') and d not in ['System']]
+                
+                for f in files:
+                    try:
+                        fp = os.path.join(root, f)
+                        size = os.path.getsize(fp)
+                        if size == 0:
+                            continue
+                        
+                        classification, reason = self.classify_file(fp, days_threshold)
+                        
+                        file_info = {
+                            'path': fp,
+                            'name': f,
+                            'size': size,
+                            'im': im_name,
+                            'reason': reason,
+                            'relative_path': fp.replace(base_path, '').strip('\\')
+                        }
+                        
+                        results[classification].append(file_info)
+                        results['total_size'] += size
+                        
+                    except (PermissionError, OSError, FileNotFoundError):
+                        continue
+                        
+        except Exception as e:
+            pass
 
 
 class DiskCleanerGUI:
@@ -252,6 +403,10 @@ class DiskCleanerGUI:
         self.scan_large_btn = ttk.Button(btn_frame, text="📁 扫描大文件", 
                                          command=self.scan_large)
         self.scan_large_btn.pack(side=tk.LEFT, padx=5)
+        
+        self.scan_im_btn = ttk.Button(btn_frame, text="💬 扫描IM数据", 
+                                      command=self.scan_im)
+        self.scan_im_btn.pack(side=tk.LEFT, padx=5)
         
         self.clean_btn = ttk.Button(btn_frame, text="🗑️ 一键清理", 
                                     command=self.clean_all, state=tk.DISABLED)
@@ -321,6 +476,69 @@ class DiskCleanerGUI:
         
         self.large_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         large_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # IM 清理页面
+        self.im_frame = ttk.Frame(self.notebook)
+        self.notebook.add(self.im_frame, text="💬 IM清理")
+        
+        # IM 页面内容
+        im_top_frame = ttk.Frame(self.im_frame)
+        im_top_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        # 时间范围选择
+        ttk.Label(im_top_frame, text="时间范围:").pack(side=tk.LEFT, padx=5)
+        self.im_days_var = tk.StringVar(value="365")
+        self.im_days_combo = ttk.Combobox(im_top_frame, textvariable=self.im_days_var, 
+                                          values=["90", "180", "365"], 
+                                          state="readonly", width=8)
+        self.im_days_combo.pack(side=tk.LEFT, padx=5)
+        ttk.Label(im_top_frame, text="天").pack(side=tk.LEFT)
+        
+        # IM 扫描按钮
+        self.im_scan_btn = ttk.Button(im_top_frame, text="🔍 扫描", 
+                                       command=self.scan_im)
+        self.im_scan_btn.pack(side=tk.LEFT, padx=10)
+        
+        # IM 结果统计
+        self.im_stats_label = ttk.Label(im_top_frame, text="", font=('微软雅黑', 10))
+        self.im_stats_label.pack(side=tk.RIGHT, padx=10)
+        
+        # IM 文件列表（带分类颜色）
+        im_list_frame = ttk.Frame(self.im_frame)
+        im_list_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        
+        self.im_tree = ttk.Treeview(im_list_frame, columns=("size", "im", "reason"), 
+                                     show="tree headings", height=12)
+        self.im_tree.heading("#0", text="文件")
+        self.im_tree.heading("size", text="大小")
+        self.im_tree.heading("im", text="来源")
+        self.im_tree.heading("reason", text="分类原因")
+        
+        self.im_tree.column("#0", width=250)
+        self.im_tree.column("size", width=80)
+        self.im_tree.column("im", width=60)
+        self.im_tree.column("reason", width=150)
+        
+        # 配置标签颜色
+        self.style.configure("Treeview", rowheight=25)
+        
+        im_scroll = ttk.Scrollbar(im_list_frame, orient=tk.VERTICAL, 
+                                   command=self.im_tree.yview)
+        self.im_tree.configure(yscrollcommand=im_scroll.set)
+        
+        self.im_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        im_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # IM 清理按钮
+        im_btn_frame = ttk.Frame(self.im_frame)
+        im_btn_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        self.im_clean_btn = ttk.Button(im_btn_frame, text="🗑️ 清理选中", 
+                                        command=self.clean_im_selected,
+                                        state=tk.DISABLED)
+        self.im_clean_btn.pack(side=tk.LEFT, padx=5)
+        
+        ttk.Label(im_btn_frame, text="💡 绿色:可清理  ⚠️黄色:需确认  ❌红色:保留").pack(side=tk.RIGHT)
         
         # 底部说明
         info_frame = ttk.LabelFrame(self.root, text="ℹ️ 说明", padding=10)
@@ -410,6 +628,106 @@ class DiskCleanerGUI:
         total = self.cleaner.results['total_large_size']
         self.update_status(f"大文件扫描完成: 共 {len(self.cleaner.results['large_files'])} 个, {self.cleaner.format_size(total)}")
         self.scan_large_btn.config(state=tk.NORMAL)
+    
+    # ============== IM 清理 UI 方法 ==============
+    
+    def scan_im(self):
+        """扫描 IM 数据"""
+        days = int(self.im_days_var.get())
+        self.cleaner.im_days_threshold = days
+        
+        self.im_scan_btn.config(state=tk.DISABLED)
+        self.update_status(f"正在扫描 {days} 天前的 IM 数据...")
+        
+        thread = threading.Thread(target=self._scan_im_thread, args=(days,))
+        thread.daemon = True
+        thread.start()
+    
+    def _scan_im_thread(self, days):
+        """扫描 IM 数据线程"""
+        results = self.cleaner.scan_im_files(days_threshold=days)
+        self.cleaner.results['im_files'] = results
+        
+        self.root.after(0, self._update_im_ui)
+    
+    def _update_im_ui(self):
+        """更新 IM 清理界面"""
+        # 清除现有数据
+        for item in self.im_tree.get_children():
+            self.im_tree.delete(item)
+        
+        results = self.cleaner.results['im_files']
+        
+        # 分类显示
+        for item in results.get('green', []):
+            self.im_tree.insert("", tk.END, text=item['relative_path'][:50],
+                values=(self.cleaner.format_size(item['size']), item['im'], "✅ " + item['reason']),
+                tags=('green',))
+        
+        for item in results.get('yellow', []):
+            self.im_tree.insert("", tk.END, text=item['relative_path'][:50],
+                values=(self.cleaner.format_size(item['size']), item['im'], "⚠️ " + item['reason']),
+                tags=('yellow',))
+        
+        for item in results.get('red', []):
+            self.im_tree.insert("", tk.END, text=item['relative_path'][:50],
+                values=(self.cleaner.format_size(item['size']), item['im'], "❌ " + item['reason']),
+                tags=('red',))
+        
+        # 配置标签颜色
+        self.im_tree.tag_configure('green', foreground='green')
+        self.im_tree.tag_configure('yellow', foreground='orange')
+        self.im_tree.tag_configure('red', foreground='red')
+        
+        # 更新统计
+        green_size = sum(f['size'] for f in results.get('green', []))
+        yellow_size = sum(f['size'] for f in results.get('yellow', []))
+        
+        stats = f"绿色: {self.cleaner.format_size(green_size)} | 黄色: {self.cleaner.format_size(yellow_size)}"
+        self.im_stats_label.config(text=stats)
+        
+        self.update_status(f"IM 扫描完成: 绿色{len(results.get('green',[]))}项, 黄色{len(results.get('yellow',[]))}项, 红色{len(results.get('red',[]))}项")
+        self.im_scan_btn.config(state=tk.NORMAL)
+        self.im_clean_btn.config(state=tk.NORMAL)
+    
+    def clean_im_selected(self):
+        """清理选中的 IM 文件"""
+        selected = self.im_tree.selection()
+        if not selected:
+            messagebox.showwarning("提示", "请先选择要清理的文件")
+            return
+        
+        # 获取选中的文件（只清理绿色和黄色的）
+        to_delete = []
+        for item_id in selected:
+            values = self.im_tree.item(item_id)['values']
+            path = self.im_tree.item(item_id)['text']
+            # 找到完整路径
+            for f in self.cleaner.results['im_files'].get('green', []) + \
+                     self.cleaner.results['im_files'].get('yellow', []):
+                if path in f['relative_path'] or f['relative_path'].endswith(path):
+                    to_delete.append(f)
+                    break
+        
+        if not to_delete:
+            messagebox.showwarning("提示", "选中的文件无法清理（红色保护）")
+            return
+        
+        if not messagebox.askyesno("确认", f"确定要清理 {len(to_delete)} 个文件吗？\n此操作不可恢复！"):
+            return
+        
+        # 执行清理
+        deleted = 0
+        deleted_size = 0
+        for f in to_delete:
+            if self.cleaner.delete_file(f['path']):
+                deleted += 1
+                deleted_size += f['size']
+        
+        messagebox.showinfo("完成", f"已清理 {deleted} 个文件\n共释放 {self.cleaner.format_size(deleted_size)}")
+        
+        # 重新扫描
+        self.scan_im()
     
     def clean_all(self):
         """一键清理"""
