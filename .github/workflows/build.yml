@@ -33,15 +33,19 @@ jobs:
         run: |
           pip install psutil pyinstaller
       
-      - name: Build EXE (压缩优化版)
+      - name: Build EXE
         run: |
           pyinstaller --onefile --windowed --name DiskCleaner --clean disk_cleaner.py
-          upx --best --lzma dist/DiskCleaner.exe
+      
+      - name: Compress with UPX
+        run: |
+          upx --best dist/DiskCleaner.exe
       
       - name: Check EXE size
         run: |
-          $size = (Get-Item dist/DiskCleaner.exe).Length / 1MB
-          Write-Host "EXE Size: $([math]::Round($size, 2)) MB"
+          dir = Get-Item dist/DiskCleaner.exe
+          sizeMB = [math]::Round(dir.Length / 1MB, 2)
+          echo "EXE Size: $sizeMB MB"
       
       - name: Upload EXE artifact
         uses: actions/upload-artifact@v4
