@@ -476,6 +476,13 @@ class DiskCleanerGUI:
         
         self.create_widgets()
         
+        # 窗口加载完成后自动扫描
+        self.root.after(500, self.auto_scan)
+    
+    def auto_scan(self):
+        """启动时自动扫描垃圾文件"""
+        self.scan_junk()
+        
     def create_widgets(self):
         """创建界面组件"""
         
