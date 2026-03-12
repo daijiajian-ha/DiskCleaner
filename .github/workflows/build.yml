@@ -34,10 +34,11 @@ jobs:
           pyinstaller --onefile --windowed --name DiskCleaner --clean disk_cleaner.py
       
       - name: Check EXE size
+        shell: pwsh
         run: |
-          dir = Get-Item dist/DiskCleaner.exe
-          sizeMB = [math]::Round(dir.Length / 1MB, 2)
-          echo "EXE Size: $sizeMB MB"
+          $file = Get-Item dist/DiskCleaner.exe
+          $sizeMB = [math]::Round($file.Length / 1MB, 2)
+          Write-Host "EXE Size: $sizeMB MB"
       
       - name: Upload EXE artifact
         uses: actions/upload-artifact@v4
