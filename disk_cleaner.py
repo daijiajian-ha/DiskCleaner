@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Windows C盘清理工具 (DiskCleaner)
+Windows系统清理助手 (DiskCleaner)
 功能：
 1. 扫描识别垃圾文件
 2. 扫描大文件
@@ -71,7 +71,7 @@ CONFIRM_DIRS = ["File", "Data"]
 
 
 class DiskCleaner:
-    """C盘清理工具主类"""
+    """系统清理工具主类"""
     
     # 垃圾文件路径配置
     JUNK_PATHS = [
@@ -466,7 +466,7 @@ class DiskCleanerGUI:
         
         # 创建主窗口
         self.root = tk.Tk()
-        self.root.title("C盘清理工具 (DiskCleaner)")
+        self.root.title("Windows系统清理助手 (DiskCleaner)")
         self.root.geometry("900x700")
         self.root.resizable(True, True)
         
@@ -483,7 +483,7 @@ class DiskCleanerGUI:
         title_frame = ttk.Frame(self.root)
         title_frame.pack(fill=tk.X, padx=10, pady=10)
         
-        title_label = ttk.Label(title_frame, text="🗑️ C盘清理工具", 
+        title_label = ttk.Label(title_frame, text="🧹 Windows系统清理助手", 
                                 font=('微软雅黑', 18, 'bold'))
         title_label.pack(side=tk.LEFT)
         
@@ -891,7 +891,7 @@ class DiskCleanerCLI:
     
     def run(self):
         print("=" * 50)
-        print("🗑️  C盘清理工具")
+        print("🧹  Windows系统清理助手")
         print("=" * 50)
         
         # 扫描垃圾

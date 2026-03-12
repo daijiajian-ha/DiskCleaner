@@ -25,13 +25,29 @@ jobs:
         with:
           python-version: ${{ inputs.python_version || '3.11' }}
       
+      - name: Install UPX
+        run: |
+          choco install upx -y
+      
       - name: Install dependencies
         run: |
           pip install psutil pyinstaller
       
-      - name: Build EXE
+      - name: Build EXE (压缩优化版)
         run: |
-          pyinstaller --onefile --windowed --name DiskCleaner disk_cleaner.py --clean
+          # 使用 UPX 压缩，减少体积
+          pyinstaller --onefile --windowed --name DiskCleaner `
+            --add-binary "C:\Windows\System32\python*.dll;." `
+            --exclude-module tkinter-test `
+            --clean `
+            disk_cleaner.py
+          # UPX 压缩
+          upx --best --lzma dist/DiskCleaner.exe
+      
+      - name: Check EXE size
+        run: |
+          $size = (Get-Item dist/DiskCleaner.exe).Length / 1MB
+          Write-Host "EXE Size: $([math]::Round($size, 2)) MB"
       
       - name: Upload EXE artifact
         uses: actions/upload-artifact@v4
