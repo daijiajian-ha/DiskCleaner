@@ -1,6 +1,9 @@
 name: Build Windows EXE
 
 on:
+  push:
+    branches:
+      - master
   workflow_dispatch:
     inputs:
       python_version:
