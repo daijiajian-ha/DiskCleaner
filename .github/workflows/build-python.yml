@@ -21,11 +21,11 @@ jobs:
       
       - name: Install dependencies
         run: |
-          pip install pyinstaller pywin32-ctypes PySimpleGUI Pillow
+          pip install pyinstaller pywin32-ctypes
       
       - name: Build EXE
         run: |
-          pyinstaller --onefile --windowed --name DiskCleaner --hidden-import=PIL --hidden-import=Pillow --hidden-import=PIL.Image disk_cleaner_simple.py
+          pyinstaller --onefile --windowed --name DiskCleaner --hidden-import=ctypes.wintype --hidden-import=ctypes disk_cleaner.py
       
       - name: Check EXE
         shell: pwsh
