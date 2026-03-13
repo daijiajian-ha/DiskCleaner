@@ -19,13 +19,13 @@ jobs:
         with:
           python-version: '3.11'
       
-      - name: Install PyInstaller
+      - name: Install dependencies
         run: |
-          pip install pyinstaller pywin32-ctypes
+          pip install pyinstaller pywin32-ctypes PySimpleGUI
       
       - name: Build EXE
         run: |
-          pyinstaller --onefile --windowed --name DiskCleaner --hidden-import=ctypes.wintype --hidden-import=ctypes disk_cleaner.py
+          pyinstaller --onefile --windowed --name DiskCleaner disk_cleaner_simple.py
       
       - name: Check EXE
         shell: pwsh
