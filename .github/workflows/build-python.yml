@@ -1,0 +1,40 @@
+name: Build Python EXE
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install PyInstaller
+        run: |
+          pip install pyinstaller pywin32-ctypes
+      
+      - name: Build EXE
+        run: |
+          pyinstaller --onefile --windowed --name DiskCleaner disk_cleaner.py
+      
+      - name: Check EXE
+        run: |
+          ls -lh dist/DiskCleaner.exe
+          file dist/DiskCleaner.exe
+      
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DiskCleaner-EXE
+          path: dist/DiskCleaner.exe
+          retention-days: 30
