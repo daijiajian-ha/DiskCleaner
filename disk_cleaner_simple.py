@@ -87,8 +87,6 @@ def format_size(size):
         return f"{size} B"
 
 def main():
-    sg.theme('LightBlue')
-    
     # Get available drives
     drives = get_drives()
     drive_options = [d[1] for d in drives]
