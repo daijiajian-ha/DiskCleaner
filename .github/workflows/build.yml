@@ -25,9 +25,8 @@ jobs:
       
       - name: Build EXE with Nuitka
         run: |
-          python -m nuitka --onefile --windows-disable-console --enable-plugin=tk-inter \
+          python -m nuitka --onefile --windows-disable-console \
             --lto=yes --jobs=4 \
-            --windows-icon-from-ico=NONE \
             --output-filename=DiskCleaner \
             --remove-output \
             disk_cleaner.py
