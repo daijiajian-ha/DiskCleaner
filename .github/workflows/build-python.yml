@@ -28,9 +28,9 @@ jobs:
           pyinstaller --onefile --windowed --name DiskCleaner disk_cleaner.py
       
       - name: Check EXE
+        shell: pwsh
         run: |
-          ls -lh dist/DiskCleaner.exe
-          file dist/DiskCleaner.exe
+          Get-ChildItem dist/DiskCleaner.exe | Format-Table Name, Length -AutoSize
       
       - name: Upload EXE artifact
         uses: actions/upload-artifact@v4
