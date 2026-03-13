@@ -29,6 +29,7 @@ jobs:
             --lto=yes --jobs=4 \
             --output-filename=DiskCleaner \
             --remove-output \
+            --assume-yes-for-downloads \
             disk_cleaner.py
         shell: bash
       
