@@ -25,7 +25,7 @@ jobs:
       
       - name: Build EXE
         run: |
-          pyinstaller --onefile --windowed --name DiskCleaner disk_cleaner.py
+          pyinstaller --onefile --windowed --name DiskCleaner --hidden-import=ctypes.wintype --hidden-import=ctypes disk_cleaner.py
       
       - name: Check EXE
         shell: pwsh

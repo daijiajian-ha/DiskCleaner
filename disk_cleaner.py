@@ -13,14 +13,14 @@ import threading
 import time
 from pathlib import Path
 import ctypes
-from ctypes import wintype
 
 # 用 ctypes 替代 psutil 获取磁盘空间
 try:
     kernel32 = ctypes.windll.kernel32
     GetDiskFreeSpaceEx = kernel32.GetDiskFreeSpaceExW
-    GetDiskFreeSpaceEx.argtypes = [wintype.LPCWSTR, ctypes.POINTER(ctypes.c_ulonglong), ctypes.POINTER(ctypes.c_ulonglong), ctypes.POINTER(ctypes.c_ulonglong)]
-    GetDiskFreeSpaceEx.restype = wintype.BOOL
+    # 使用 ctypes 类型替代 wintype
+    GetDiskFreeSpaceEx.argtypes = [ctypes.c_wchar_p, ctypes.POINTER(ctypes.c_ulonglong), ctypes.POINTER(ctypes.c_ulonglong), ctypes.POINTER(ctypes.c_ulonglong)]
+    GetDiskFreeSpaceEx.restype = ctypes.c_bool
     
     def get_disk_usage(path):
         free_bytes = ctypes.c_ulonglong(0)
