@@ -266,7 +266,7 @@ class DiskCleanerGUI:
             return
         
         self.root = tk.Tk()
-        self.root.title("🧹 Windows系统清理助手")
+        self.root.title("[Windows系统清理助手")
         self.root.geometry("800x600")
         self.root.configure(bg='#F5F7FA')
         
@@ -294,8 +294,8 @@ class DiskCleanerGUI:
         title_frame.pack(fill=tk.X)
         title_frame.pack_propagate(False)
         
-        title_label = tk.Label(title_frame, text="🧹 Windows系统清理助手", 
-                               font=("Microsoft YaHei", 18, "bold"),
+        title_label = tk.Label(title_frame, text="Windows系统清理助手", 
+                               font=("Segoe UI", 18, "bold"),
                                bg=self.colors['primary'], fg="white")
         title_label.pack(side=tk.LEFT, padx=20, pady=15)
         
@@ -303,7 +303,7 @@ class DiskCleanerGUI:
         drive_frame = tk.Frame(self.root, bg=self.colors['bg'])
         drive_frame.pack(fill=tk.X, padx=20, pady=(15, 10))
         
-        tk.Label(drive_frame, text="选择盘符:", font=("Microsoft YaHei", 12),
+        tk.Label(drive_frame, text="选择盘符:", font=("Segoe UI", 12),
                 bg=self.colors['bg'], fg=self.colors['text']).pack(side=tk.LEFT)
         
         self.drive_buttons = {}
@@ -312,7 +312,7 @@ class DiskCleanerGUI:
             usage = self._get_drive_usage(f"{drive}:/")
             if usage is not None:
                 btn = tk.Button(drive_frame, text=f"{drive}: {usage}%",
-                               font=("Microsoft YaHei", 10),
+                               font=("Segoe UI", 10),
                                bg=self._get_usage_color(usage),
                                fg="white" if usage > 50 else "black",
                                relief=tk.FLAT, padx=15, pady=5,
@@ -328,20 +328,20 @@ class DiskCleanerGUI:
         tab_frame = tk.Frame(self.root, bg=self.colors['bg'])
         tab_frame.pack(fill=tk.X, padx=20, pady=(0, 10))
         
-        self.tab_junk = tk.Button(tab_frame, text="🗑️ 垃圾清理",
-                                  font=("Microsoft YaHei", 11), bg=self.colors['primary'], fg="white",
+        self.tab_junk = tk.Button(tab_frame, text="垃圾清理",
+                                  font=("Segoe UI", 11), bg=self.colors['primary'], fg="white",
                                   relief=tk.FLAT, padx=20, pady=8,
                                   command=lambda: self._switch_tab('junk'))
         self.tab_junk.pack(side=tk.LEFT, padx=5)
         
-        self.tab_large = tk.Button(tab_frame, text="📁 大文件清理",
-                                   font=("Microsoft YaHei", 11), bg='#CCCCCC', fg="black",
+        self.tab_large = tk.Button(tab_frame, text="[大文件清理]",
+                                   font=("Segoe UI", 11), bg='#CCCCCC', fg="black",
                                    relief=tk.FLAT, padx=20, pady=8,
                                    command=lambda: self._switch_tab('large'))
         self.tab_large.pack(side=tk.LEFT, padx=5)
         
-        self.tab_im = tk.Button(tab_frame, text="💬 微信/企微清理",
-                                font=("Microsoft YaHei", 11), bg='#CCCCCC', fg="black",
+        self.tab_im = tk.Button(tab_frame, text="[微信/企微清理]",
+                                font=("Segoe UI", 11), bg='#CCCCCC', fg="black",
                                 relief=tk.FLAT, padx=20, pady=8,
                                 command=lambda: self._switch_tab('im'))
         self.tab_im.pack(side=tk.LEFT, padx=5)
@@ -359,7 +359,7 @@ class DiskCleanerGUI:
         self.progress_frame.pack(fill=tk.X, padx=20, pady=(0, 10))
         
         self.progress_label = tk.Label(self.progress_frame, text="就绪",
-                                       font=("Microsoft YaHei", 10), bg=self.colors['bg'])
+                                       font=("Segoe UI", 10), bg=self.colors['bg'])
         self.progress_label.pack(anchor=tk.W)
         
         self.progress_bar = ttk.Progressbar(self.progress_frame, mode='determinate', length=100)
@@ -373,7 +373,7 @@ class DiskCleanerGUI:
         scrollbar = tk.Scrollbar(self.result_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        self.result_list = tk.Listbox(self.result_frame, font=("Microsoft YaHei", 10),
+        self.result_list = tk.Listbox(self.result_frame, font=("Segoe UI", 10),
                                       yscrollcommand=scrollbar.set, selectmode=tk.EXTENDED)
         self.result_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.config(command=self.result_list.yview)
@@ -382,22 +382,22 @@ class DiskCleanerGUI:
         btn_frame = tk.Frame(self.root, bg=self.colors['bg'])
         btn_frame.pack(fill=tk.X, padx=20, pady=10)
         
-        self.scan_btn = tk.Button(btn_frame, text="🔍 开始扫描",
-                                  font=("Microsoft YaHei", 12, "bold"),
+        self.scan_btn = tk.Button(btn_frame, text="开始扫描",
+                                  font=("Segoe UI", 12, "bold"),
                                   bg=self.colors['accent'], fg="white",
                                   relief=tk.FLAT, padx=30, pady=10,
                                   command=self._start_scan)
         self.scan_btn.pack(side=tk.LEFT, padx=5)
         
-        self.clean_btn = tk.Button(btn_frame, text="🗑️ 删除选中",
-                                  font=("Microsoft YaHei", 12),
+        self.clean_btn = tk.Button(btn_frame, text="删除选中",
+                                  font=("Segoe UI", 12),
                                   bg=self.colors['red'], fg="white",
                                   relief=tk.FLAT, padx=30, pady=10,
                                   state=tk.DISABLED, command=self._delete_selected)
         self.clean_btn.pack(side=tk.RIGHT, padx=5)
         
         self.total_label = tk.Label(btn_frame, text="共 0 项，0 B",
-                                    font=("Microsoft YaHei", 10), bg=self.colors['bg'])
+                                    font=("Segoe UI", 10), bg=self.colors['bg'])
         self.total_label.pack(side=tk.RIGHT, padx=20)
     
     def _get_drive_usage(self, path):
@@ -454,14 +454,14 @@ class DiskCleanerGUI:
         self.junk_settings = tk.Frame(self.result_frame, bg=self.colors['card_bg'])
         
         tk.Label(self.junk_settings, text="扫描 Windows 临时文件、浏览器缓存等",
-                font=("Microsoft YaHei", 10), bg=self.colors['card_bg'],
+                font=("Segoe UI", 10), bg=self.colors['card_bg'],
                 fg='#666666').pack(anchor=tk.W, padx=10, pady=5)
     
     def _create_large_settings(self):
         self.large_settings = tk.Frame(self.result_frame, bg=self.colors['card_bg'])
         
         tk.Label(self.large_settings, text="扫描大于指定大小的文件:",
-                font=("Microsoft YaHei", 10), bg=self.colors['card_bg']).pack(anchor=tk.W, padx=10, pady=5)
+                font=("Segoe UI", 10), bg=self.colors['card_bg']).pack(anchor=tk.W, padx=10, pady=5)
         
         size_frame = tk.Frame(self.large_settings, bg=self.colors['card_bg'])
         size_frame.pack(anchor=tk.W, padx=10, pady=5)
@@ -476,7 +476,7 @@ class DiskCleanerGUI:
         self.im_settings = tk.Frame(self.result_frame, bg=self.colors['card_bg'])
         
         tk.Label(self.im_settings, text="扫描微信/企业微信文件:",
-                font=("Microsoft YaHei", 10), bg=self.colors['card_bg']).pack(anchor=tk.W, padx=10, pady=5)
+                font=("Segoe UI", 10), bg=self.colors['card_bg']).pack(anchor=tk.W, padx=10, pady=5)
         
         days_frame = tk.Frame(self.im_settings, bg=self.colors['card_bg'])
         days_frame.pack(anchor=tk.W, padx=10, pady=5)
@@ -489,7 +489,7 @@ class DiskCleanerGUI:
         
         # 安全提示
         tk.Label(self.im_settings, text="⚠️ 建议备份重要文件后再清理",
-                font=("Microsoft YaHei", 9), bg=self.colors['card_bg'],
+                font=("Segoe UI", 9), bg=self.colors['card_bg'],
                 fg=self.colors['yellow']).pack(anchor=tk.W, padx=10, pady=5)
     
     def _start_scan(self):
@@ -538,7 +538,7 @@ class DiskCleanerGUI:
             
             finally:
                 self.cleaner.scanning = False
-                self.root.after(0, lambda: self.scan_btn.config(state=tk.NORMAL, text="🔍 开始扫描"))
+                self.root.after(0, lambda: self.scan_btn.config(state=tk.NORMAL, text="开始扫描"))
         
         thread = threading.Thread(target=scan, daemon=True)
         thread.start()
